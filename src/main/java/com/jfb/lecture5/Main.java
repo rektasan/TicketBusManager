@@ -1,52 +1,42 @@
 package com.jfb.lecture5;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.jfb.lecture5.model.BusTicket;
+import com.jfb.lecture5.util.BusTicketFileReader;
+import com.jfb.lecture5.util.BusTicketStats;
 import com.jfb.lecture5.util.BusTicketValidator;
+import com.jfb.lecture5.util.Constants;
 
-import java.util.Scanner;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.jfb.lecture5.util.exeptions.InvalidTicketDataException;
+
+import java.io.IOException;
+import javax.imageio.IIOException;
+import java.util.List;
 
 public class Main {
 
-  public static void main(String[] args) throws JsonProcessingException {
-    int totalTickets = 0;
-    int totalValidTickets = 0;
+  public static void main(String[] args) throws IOException {
+    try {
+      List<String> ticketEntries = BusTicketFileReader.readBusTicketsFromFile(Constants.TICKET_FILEPATH);
+      BusTicketStats ticketStats = new BusTicketStats();
 
-    do {
-      try {
-        String input = getInput().replace("“", "\"").replace("”", "\"");
-        BusTicket busTicket = new ObjectMapper().readValue(input, BusTicket.class);
+      for (String ticketEntry : ticketEntries) {
+        try {
+          BusTicket busTicket = BusTicketFileReader.mapBusTicketFromString(ticketEntry);
+          ticketStats.incrementTotalTickets();
 
-        boolean isValid = BusTicketValidator.validateBusTicket(busTicket);
-
-        if (isValid) {
-          totalValidTickets++;
+          if (BusTicketValidator.validateBusTicket(busTicket, ticketStats)) {
+            ticketStats.incrementTotalValidTickets();
+          }
+        } catch (JsonProcessingException e) {
+          throw new InvalidTicketDataException(e.getMessage(), e.getCause());
         }
-
-        System.out.println(busTicket.toString());
-      } catch (JsonProcessingException e) {
-        System.err.println("Violation: Invalid input. Please, provide a valid JSON.");
       }
 
-      totalTickets++;
-
-    } while (totalTickets < 5);
-
-    printMostPopularViolation(totalTickets, totalValidTickets);
-  }
-
-  private static String getInput() {
-    System.out.println("Enter ticket info in JSON format: ");
-    return new Scanner(System.in).nextLine();
-  }
-
-  private static void printMostPopularViolation(int totalTickets, int totalValidTickets) {
-    String mostPopularViolation = BusTicketValidator.determineMostPopularViolation();
-    System.out.println("Total = " + totalTickets +
-        "\nValid = " + totalValidTickets +
-        "\nMost popular violation = " + mostPopularViolation);
+      ticketStats.printBusTicketStats();
+    } catch (IIOException e) {
+      throw new IOException(e.getMessage());
+    }
   }
 
 }

@@ -10,6 +10,7 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 public class BusTicket {
+
   private String ticketClass;
 
   private String ticketType;
@@ -17,4 +18,5 @@ public class BusTicket {
   private String startDate;
 
   private String price;
+
 }
