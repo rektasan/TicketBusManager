@@ -1,28 +1,42 @@
 package com.jfb.lecture5;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jfb.lecture5.model.BusTicket;
+import com.jfb.lecture5.util.BusTicketFileReader;
+import com.jfb.lecture5.util.BusTicketStats;
+import com.jfb.lecture5.util.BusTicketValidator;
+import com.jfb.lecture5.util.Constants;
 
-import java.util.Scanner;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.jfb.lecture5.util.exeptions.InvalidTicketDataException;
+
+import java.io.IOException;
+import javax.imageio.IIOException;
+import java.util.List;
 
 public class Main {
-  public static void main(String[] args) throws JsonProcessingException {
-    int x = 0;
 
-    do {
-      String input = getInput();
-      BusTicket busTicket = new ObjectMapper().readValue(input, BusTicket.class);
+  public static void main(String[] args) throws IOException {
+    try {
+      List<String> ticketEntries = BusTicketFileReader.readBusTicketsFromFile(Constants.TICKET_FILEPATH);
+      BusTicketStats ticketStats = new BusTicketStats();
 
-      // TODO: ticket validation
+      for (String ticketEntry : ticketEntries) {
+        try {
+          BusTicket busTicket = BusTicketFileReader.mapBusTicketFromString(ticketEntry);
+          ticketStats.incrementTotalTickets();
 
-      System.out.println(busTicket.toString());
-      x++;
+          if (BusTicketValidator.validateBusTicket(busTicket, ticketStats)) {
+            ticketStats.incrementTotalValidTickets();
+          }
+        } catch (JsonProcessingException e) {
+          throw new InvalidTicketDataException(e.getMessage(), e.getCause());
+        }
+      }
 
-    } while (x < 5);
+      ticketStats.printBusTicketStats();
+    } catch (IIOException e) {
+      throw new IOException(e.getMessage());
+    }
   }
 
-  private static String getInput() {
-    return new Scanner(System.in).nextLine();
-  }
 }
